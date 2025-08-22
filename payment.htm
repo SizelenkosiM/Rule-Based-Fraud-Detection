@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Online Banking Simulator</title>
+    <style>
+      :root {
+        --primary-color: #2e86de;
+        --secondary-color: #2ecc71;
+        --danger-color: #e74c3c;
+        --dark-color: #34495e;
+        --light-color: #f5f6fa;
+        --grey-color: #95a5a6;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background-color: #f0f2f5;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
+
+      header {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 1rem 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+      }
+
+      .user-info img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        background-color: #fff;
+      }
+
+      main {
+        padding: 2rem 0;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 1.5rem;
+      }
+
+      @media (max-width: 768px) {
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .account-info,
+      .transaction-form,
+      .transaction-history {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .account-info h2,
+      .transaction-form h2,
+      .transaction-history h2 {
+        color: var(--dark-color);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+      }
+
+      .account-balance {
+        font-size: 2rem;
+        color: var(--primary-color);
+        font-weight: bold;
+        margin: 1rem 0;
+      }
+
+      .account-number {
+        font-size: 1rem;
+        color: var(--grey-color);
+      }
+
+      .quick-actions {
+        margin-top: 1.5rem;
+      }
+
+      .btn {
+        display: inline-block;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        transition: background-color 0.3s;
+      }
+
+      .btn:hover {
+        background-color: #2874c5;
+      }
+
+      .btn-secondary {
+        background-color: var(--secondary-color);
+      }
+
+      .btn-secondary:hover {
+        background-color: #27ae60;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+
+      .transaction-item {
+        border-bottom: 1px solid #eee;
+        padding: 1rem 0;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .transaction-info {
+        flex: 1;
+      }
+
+      .transaction-type {
+        font-weight: bold;
+      }
+
+      .transaction-date {
+        color: var(--grey-color);
+        font-size: 0.85rem;
+      }
+
+      .transaction-amount {
+        font-weight: bold;
+      }
+
+      .credit {
+        color: var(--secondary-color);
+      }
+
+      .debit {
+        color: var(--danger-color);
+      }
+
+      .notification {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        color: white;
+        max-width: 300px;
+        z-index: 1000;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        display: none;
+      }
+
+      .notification.success {
+        background-color: var(--secondary-color);
+      }
+
+      .notification.error {
+        background-color: var(--danger-color);
+      }
+
+      .notification.warning {
+        background-color: #f39c12;
+      }
+
+      .loader {
+        display: none;
+        border: 3px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 3px solid var(--primary-color);
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .fraud-alert {
+        background-color: #ffecb3;
+        border-left: 4px solid #ff9800;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: none;
+      }
+
+      .fraud-alert h3 {
+        color: #e65100;
+        margin-bottom: 0.5rem;
+      }
+
+      .dashboard-container {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <div class="logo">SecureBank</div>
+          <div class="user-info">
+            <p class="user-info">
+              Welcome, <span id="userWelcome"> Not Logged In</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <div class="notification" id="notification"></div>
+
+        <div class="login-container" id="loginContainer">
+          <h2>Login</h2>
+          <form id="loginForm">
+            <div class="form-group">
+              <label for="username">User ID</label>
+              <input type="text" id="username" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                class="form-control"
+                required
+              />
+            </div>
+            <button type="submit" class="btn">Login</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="registerBtn"
+              style="margin-top: 10px"
+            >
+              Register
+            </button>
+          </form>
+        </div>
+
+        <div class="dashboard-container" id="dashboardContainer">
+          <div class="fraud-alert" id="fraudAlert">
+            <h3>Fraud Alert</h3>
+            <p id="fraudAlertMessage">
+              Suspicious activity detected on your account.
+            </p>
+          </div>
+
+          <div class="dashboard">
+            <div class="sidebar">
+              <div class="account-info">
+                <h2>Account Summary</h2>
+                <div class="account-balance" id="accountBalance">$2,500.00</div>
+                <div class="account-number">Account #: **** 4567</div>
+                <div class="account-status">
+                  <p>Status: <span id="accountStatus">Active</span></p>
+                  <p>
+                    Last login:
+                    <span id="lastLogin">Apr 3, 2025, 10:30 AM</span>
+                  </p>
+                </div>
+                <div class="quick-actions">
+                  <button class="btn" id="refreshBalanceBtn">
+                    Refresh Balance
+                  </button>
+                  <button class="btn btn-secondary" id="accountStatementBtn">
+                    Account Statement
+                  </button>
+                  <button
+                    class="btn"
+                    id="logoutBtn"
+                    style="background-color: var(--danger-color)"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="main-content">
+              <div class="transaction-form">
+                <h2>Make a Transfer</h2>
+                <form id="transferForm">
+                  <div class="form-group">
+                    <label for="recipient">Recipient Account</label>
+                    <input
+                      type="text"
+                      id="recipient"
+                      class="form-control"
+                      placeholder="Enter account number"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="amount">Amount ($)</label>
+                    <input
+                      type="number"
+                      id="amount"
+                      class="form-control"
+                      placeholder="Enter amount"
+                      min="0.01"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="description">Description</label>
+                    <input
+                      type="text"
+                      id="description"
+                      class="form-control"
+                      placeholder="Enter description (optional)"
+                    />
+                  </div>
+                  <button type="submit" class="btn" id="transferBtn">
+                    Transfer Funds
+                    <span class="loader" id="transferLoader"></span>
+                  </button>
+                </form>
+              </div>
+
+              <div class="transaction-history">
+                <h2>Recent Transactions</h2>
+                <div id="transactionsList">
+                  <div class="transaction-item">
+                    <div class="transaction-info">
+                      <div class="transaction-type">Grocery Store Purchase</div>
+                      <div class="transaction-date">Apr 2, 2025</div>
+                    </div>
+                    <div class="transaction-amount debit">-$45.87</div>
+                  </div>
+                  <div class="transaction-item">
+                    <div class="transaction-info">
+                      <div class="transaction-type">Salary Deposit</div>
+                      <div class="transaction-date">Apr 1, 2025</div>
+                    </div>
+                    <div class="transaction-amount credit">+$2,500.00</div>
+                  </div>
+                  <div class="transaction-item">
+                    <div class="transaction-info">
+                      <div class="transaction-type">Transfer to Alice</div>
+                      <div class="transaction-date">Mar 28, 2025</div>
+                    </div>
+                    <div class="transaction-amount debit">-$120.00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+      const accountBalance = document.getElementById("accountBalance");
+      const accountStatus = document.getElementById("accountStatus");
+      const transferForm = document.getElementById("transferForm");
+      const amountInput = document.getElementById("amount");
+      const recipientInput = document.getElementById("recipient");
+      const descriptionInput = document.getElementById("description");
+      const transferBtn = document.getElementById("transferBtn");
+      const transferLoader = document.getElementById("transferLoader");
+      const transactionsList = document.getElementById("transactionsList");
+      const notification = document.getElementById("notification");
+      const fraudAlert = document.getElementById("fraudAlert");
+      const fraudAlertMessage = document.getElementById("fraudAlertMessage");
+      const loginContainer = document.getElementById("loginContainer");
+      const dashboardContainer = document.getElementById("dashboardContainer");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      const users = {
+        user123: {
+          userId: "user123",
+          name: "Anesu Makombe",
+          password: "anesu123",
+          balance: 2500.0,
+          lastActivity: new Date().getTime() - 100 * 24 * 60 * 60 * 1000, // 100 days ago
+          monthlyTransactions: 200.0,
+        },
+        user124: {
+          userId: "user124",
+          name: "Panashe Chasi",
+          password: "panashe123",
+          balance: 3000.0,
+          lastActivity: new Date(2024, 1, 1).getTime(),
+          monthlyTransactions: 0.0,
+        },
+        user125: {
+          userId: "user125",
+          name: "Donald Gumbo",
+          password: "donald123",
+          balance: 1800.0,
+          lastActivity: new Date(2023, 11, 1).getTime(),
+          monthlyTransactions: 0.0,
+        },
+        user126: {
+          userId: "user126",
+          name: "Sizelenkosi Mpande",
+          password: "sizeh123",
+          balance: 2200.0,
+          lastActivity: new Date(2024, 1, 15).getTime(),
+          monthlyTransactions: 0.0,
+        },
+      };
+
+      let userData = null;
+
+      // Login form
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value.trim();
+
+          if (users[username] && users[username].password === password) {
+            userData = users[username];
+            loginContainer.style.display = "none";
+            dashboardContainer.style.display = "block";
+            document.getElementById("userWelcome").textContent = userData.name;
+            document.getElementById("accountBalance").textContent =
+              "$" + userData.balance.toFixed(2);
+
+            fraudAlert.style.display = "none";
+
+            showNotification("Logged in successfully!", "success");
+
+            document.getElementById("lastLogin").textContent =
+              new Date().toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
+            loadRecentTransactions();
+          } else {
+            showNotification("Invalid credentials", "error");
+          }
+        });
+
+      logoutBtn.addEventListener("click", function () {
+        userData = null;
+        dashboardContainer.style.display = "none";
+        loginContainer.style.display = "block";
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("userWelcome").textContent = "Not Logged In";
+        fraudAlert.style.display = "none";
+        showNotification("Logged out successfully", "success");
+      });
+
+      document
+        .getElementById("registerBtn")
+        .addEventListener("click", function () {
+          showNotification(
+            "Registration is currently not available",
+            "warning"
+          );
+        });
+
+      const API_BASE_URL = "http://localhost:5000/api";
+
+      function formatCurrency(amount) {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        }).format(amount);
+      }
+
+      function formatDate(date) {
+        return new Date(date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function showNotification(message, type) {
+        notification.textContent = message;
+        notification.className = `notification ${type}`;
+        notification.style.display = "block";
+
+        setTimeout(() => {
+          notification.style.display = "none";
+        }, 5000);
+      }
+
+      function updateBalanceDisplay() {
+        accountBalance.textContent = formatCurrency(userData.balance);
+      }
+
+      function addTransactionToHistory(type, description, amount, isCredit) {
+        const transactionItem = document.createElement("div");
+        transactionItem.className = "transaction-item";
+
+        const currentDate = new Date();
+
+        transactionItem.innerHTML = `
+        <div class="transaction-info">
+            <div class="transaction-type">${description}</div>
+            <div class="transaction-date">${formatDate(currentDate)}</div>
+        </div>
+        <div class="transaction-amount ${isCredit ? "credit" : "debit"}">${
+          isCredit ? "+" : "-"
+        }${formatCurrency(amount)}</div>
+    `;
+
+        transactionsList.insertBefore(
+          transactionItem,
+          transactionsList.firstChild
+        );
+      }
+
+      function checkFraudRules(transaction) {
+        const fraudFlags = [];
+
+        if (transaction.amount >= 500) {
+          fraudFlags.push({
+            rule: "single_transaction_limit",
+            description: "Transaction exceeds the $500 limit",
+          });
+        }
+
+        const newMonthlyTotal =
+          userData.monthlyTransactions + transaction.amount;
+        if (newMonthlyTotal > 1000) {
+          fraudFlags.push({
+            rule: "monthly_cumulative_limit",
+            description: "Total monthly transactions exceed $1000",
+          });
+        }
+
+        const daysSinceLastActivity =
+          (new Date().getTime() - userData.lastActivity) /
+          (1000 * 60 * 60 * 24);
+        if (daysSinceLastActivity > 90 && transaction.amount >= 100) {
+          fraudFlags.push({
+            rule: "dormant_account_activation",
+            description: "Significant activity after 90+ days of inactivity",
+          });
+        }
+
+        return fraudFlags;
+      }
+
+      async function sendToFraudDetectionSystem(transaction, fraudFlags) {
+        try {
+          const formattedTransaction = {
+            sender_id: transaction.userId,
+            receiver_id: transaction.recipient,
+            amount: transaction.amount,
+            description: transaction.description,
+            sender_name: userData.name,
+          };
+
+          const response = await fetch(`${API_BASE_URL}/transactions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formattedTransaction),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          return {
+            success: true,
+            isFraudulent: data.status === "flagged",
+            fraudFlags: data.alerts.map((alert) => ({
+              rule: alert.rule_triggered,
+              description: alert.description,
+            })),
+            transactionId: data.transaction_id,
+          };
+        } catch (error) {
+          console.error("Error sending transaction to server:", error);
+          return {
+            success: false,
+            error: error.message,
+          };
+        }
+      }
+
+      async function processTransaction(transaction) {
+        transferLoader.style.display = "inline-block";
+        transferBtn.disabled = true;
+
+        try {
+          const fraudFlags = checkFraudRules(transaction);
+
+          // Send transaction to fraud detection system
+          const response = await sendToFraudDetectionSystem(
+            transaction,
+            fraudFlags
+          );
+
+          // Update UI based on response
+          if (response.success) {
+            if (response.isFraudulent) {
+              // Show fraud alert
+              const flagMessages = response.fraudFlags
+                .map((f) => f.description)
+                .join(", ");
+              fraudAlertMessage.textContent = `Suspicious activity detected: ${flagMessages}`;
+              fraudAlert.style.display = "block";
+              showNotification("Transaction flagged for review", "warning");
+            } else {
+              // Process successful transaction
+              userData.balance -= transaction.amount;
+              userData.monthlyTransactions += transaction.amount;
+              userData.lastActivity = new Date().getTime();
+
+              fraudAlert.style.display = "none";
+
+              updateBalanceDisplay();
+              addTransactionToHistory(
+                "transfer",
+                `Transfer to ${transaction.recipient}`,
+                transaction.amount,
+                false
+              );
+              showNotification("Transfer completed successfully", "success");
+            }
+          } else {
+            showNotification(
+              response.error || "Error processing transaction",
+              "error"
+            );
+          }
+        } catch (error) {
+          console.error("Transaction error:", error);
+          showNotification("System error, please try again later", "error");
+        } finally {
+          transferLoader.style.display = "none";
+          transferBtn.disabled = false;
+        }
+      }
+
+      // Load recent transactions from backend
+      async function loadRecentTransactions() {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/transactions?user_id=${userData.userId}`
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+
+          const transactions = await response.json();
+
+          transactionsList.innerHTML = "";
+
+          transactions.slice(0, 5).forEach((transaction) => {
+            const isCredit = transaction.receiver_id === userData.userId;
+            const amount = parseFloat(transaction.amount);
+            const description =
+              transaction.description ||
+              (isCredit
+                ? `Received from ${transaction.sender_id}`
+                : `Transfer to ${transaction.receiver_id}`);
+
+            addTransactionToHistory(
+              isCredit ? "credit" : "debit",
+              description,
+              amount,
+              isCredit
+            );
+          });
+        } catch (error) {
+          console.error("Error loading transactions:", error);
+        }
+      }
+
+      // Event Listeners
+      transferForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const amount = parseFloat(amountInput.value);
+        const recipient = recipientInput.value;
+        const description =
+          descriptionInput.value || `Transfer to ${recipient}`;
+
+        if (amount <= 0) {
+          showNotification("Please enter a valid amount", "error");
+          return;
+        }
+
+        if (amount > userData.balance) {
+          showNotification("Insufficient funds", "error");
+          return;
+        }
+
+        const transaction = {
+          userId: userData.userId,
+          accountNumber: userData.userId,
+          recipient: recipient,
+          amount: amount,
+          description: description,
+          type: "transfer",
+        };
+
+        processTransaction(transaction);
+      });
+
+      document
+        .getElementById("refreshBalanceBtn")
+        .addEventListener("click", function () {
+          showNotification("Balance updated", "success");
+          updateBalanceDisplay();
+          loadRecentTransactions();
+        });
+
+      document
+        .getElementById("accountStatementBtn")
+        .addEventListener("click", function () {
+          showNotification("Statement download started", "success");
+        });
+
+      if (userData) {
+        updateBalanceDisplay();
+        loadRecentTransactions();
+      }
+    </script>
+  </body>
+</html>
+`

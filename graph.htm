@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Fraud Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --success-color: #2ecc71;
+            --danger-color: #e63946;
+            --text-primary: #2b2d42;
+            --text-secondary: #8d99ae;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f9;
+            --border-radius-sm: 8px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 20px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.25s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 2rem;
+        }
+        
+        h1 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-align: center;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 5px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 450px;
+            margin: 2rem 0;
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            background-color: var(--bg-tertiary);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .top-controls {
+            display: flex;
+            justify-content: flex-end;
+            margin: 1.5rem 0;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .filter-btn {
+            padding: 0.6rem 1.2rem;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: none;
+            border-radius: var(--border-radius-lg);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.03em;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius-sm);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .fraud-color {
+            background-color: var(--danger-color);
+            box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+        }
+        
+        .safe-color {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .dashboard {
+                padding: 1.5rem;
+            }
+            
+            .chart-container {
+                height: 350px;
+            }
+            
+            .filter-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .top-controls {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>Monthly Fraud Amounts</h1>
+        
+        <div class="top-controls">
+            <div class="filters">
+                <button class="filter-btn active" data-period="6">6 Months</button>
+                <button class="filter-btn" data-period="12">12 Months</button>
+                <button class="filter-btn" data-period="all">All Time</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="fraudChart"></canvas>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color fraud-color"></div>
+                <span>Fraud Amount</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color safe-color"></div>
+                <span>Safe Threshold</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in a real app this would come from an API
+        const allData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            fraudData: [120000, 95000, 140000, 110000, 80000, 60000, 45000, 70000, 90000, 130000, 150000, 110000],
+            safeData: [75940, 32480, 128900, 45320, 96250, 51790, 67030, 84220, 39760, 101340, 57310, 61160]  
+        };
+
+        // Initialize chart
+        const ctx = document.getElementById('fraudChart').getContext('2d');
+        let fraudChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: allData.labels.slice(-6), // Default to last 6 months
+                datasets: [
+                    {
+                        label: 'Fraud Amount',
+                        data: allData.fraudData.slice(-6),
+                        borderColor: '#e63946',
+                        backgroundColor: 'rgba(230, 57, 70, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#e63946',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Safe Threshold',
+                        data: allData.safeData.slice(-6),
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.05)',
+                        borderWidth: 2,
+                        tension: 0, // Set to 0 for sharp turning points
+                        pointRadius: 3, // Add visible points to emphasize turning points
+                        pointBackgroundColor: '#2ecc71',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#2b2d42',
+                        bodyColor: '#2b2d42',
+                        borderColor: '#dddddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8,
+                        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            color: '#8d99ae'
+                        },
+                        grid: {
+                            display: true, // Show vertical grid lines
+                            color: 'rgba(141, 153, 174, 0.25)',
+                            drawBorder: false,
+                            lineWidth: 1
+                        },
+                        ticks: {
+                            color: '#8d99ae'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Amount (USD)',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            color: '#8d99ae'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            },
+                            color: '#8d99ae'
+                        },
+                        grid: {
+                            color: 'rgba(141, 153, 174, 0.2)',
+                            drawBorder: false,
+                            display: true // Show horizontal grid lines
+                        },
+                        min: 0,
+                        max: 160000
+                    }
+                },
+                elements: {
+                    line: {
+                        borderWidth: 3
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                animations: {
+                    tension: {
+                        duration: 1000,
+                        easing: 'linear'
+                    }
+                }
+            }
+        });
+
+        // Filter functionality
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const period = this.dataset.period;
+                let monthsToShow = 12;
+                
+                if (period === '6') monthsToShow = 6;
+                if (period === 'all') monthsToShow = 12; // All 12 months in our data
+                
+                // Update chart data
+                fraudChart.data.labels = allData.labels.slice(-monthsToShow);
+                fraudChart.data.datasets[0].data = allData.fraudData.slice(-monthsToShow);
+                fraudChart.data.datasets[1].data = allData.safeData.slice(-monthsToShow);
+                
+                // Adjust y-axis max based on data
+                const maxFraud = Math.max(...allData.fraudData.slice(-monthsToShow));
+                fraudChart.options.scales.y.max = Math.max(160000, maxFraud * 1.1);
+                
+                fraudChart.update();
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+<!--<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Fraud Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --success-color: #2ecc71;
+            --danger-color: #e63946;
+            --text-primary: #2b2d42;
+            --text-secondary: #8d99ae;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f9;
+            --border-radius-sm: 8px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 20px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.25s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 2rem;
+        }
+        
+        h1 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-align: center;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 5px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 450px;
+            margin: 2rem 0;
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            background-color: var(--bg-tertiary);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .top-controls {
+            display: flex;
+            justify-content: flex-end;
+            margin: 1.5rem 0;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .filter-btn {
+            padding: 0.6rem 1.2rem;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: none;
+            border-radius: var(--border-radius-lg);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.03em;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius-sm);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .fraud-color {
+            background-color: var(--danger-color);
+            box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+        }
+        
+        .safe-color {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .dashboard {
+                padding: 1.5rem;
+            }
+            
+            .chart-container {
+                height: 350px;
+            }
+            
+            .filter-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .top-controls {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>Monthly Fraud Amounts</h1>
+        
+        <div class="top-controls">
+            <div class="filters">
+                <button class="filter-btn active" data-period="6">6 Months</button>
+                <button class="filter-btn" data-period="12">12 Months</button>
+                <button class="filter-btn" data-period="all">All Time</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="fraudChart"></canvas>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color fraud-color"></div>
+                <span>Fraud Amount</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color safe-color"></div>
+                <span>Safe Threshold</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in a real app this would come from an API
+        const allData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            fraudData: [120000, 95000, 140000, 110000, 80000, 60000, 45000, 70000, 90000, 130000, 150000, 110000],
+            safeData: [75940, 32480, 128900, 45320, 96250, 51790, 67030, 84220, 39760, 101340, 57310, 61160]  //[50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000]
+        };
+
+        // Initialize chart
+        const ctx = document.getElementById('fraudChart').getContext('2d');
+        let fraudChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: allData.labels.slice(-6), // Default to last 6 months
+                datasets: [
+                    {
+                        label: 'Fraud Amount',
+                        data: allData.fraudData.slice(-6),
+                        borderColor: '#e63946',
+                        backgroundColor: 'rgba(230, 57, 70, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#e63946',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Safe Threshold',
+                        data: allData.safeData.slice(-6),
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.05)',
+                        borderWidth: 2,
+                        // Removed borderDash for continuous line
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#2b2d42',
+                        bodyColor: '#2b2d42',
+                        borderColor: '#dddddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8,
+                        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            color: '#8d99ae'
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#8d99ae'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Amount (USD)',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            color: '#8d99ae'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            },
+                            color: '#8d99ae'
+                        },
+                        grid: {
+                            color: 'rgba(141, 153, 174, 0.2)',
+                            drawBorder: false,
+                            display: true // Show horizontal grid lines
+                        },
+                        min: 0,
+                        max: 160000
+                    }
+                },
+                elements: {
+                    line: {
+                        borderWidth: 3
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                animations: {
+                    tension: {
+                        duration: 1000,
+                        easing: 'linear'
+                    }
+                }
+            }
+        });
+
+        // Filter functionality
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const period = this.dataset.period;
+                let monthsToShow = 12;
+                
+                if (period === '6') monthsToShow = 6;
+                if (period === 'all') monthsToShow = 12; // All 12 months in our data
+                
+                // Update chart data
+                fraudChart.data.labels = allData.labels.slice(-monthsToShow);
+                fraudChart.data.datasets[0].data = allData.fraudData.slice(-monthsToShow);
+                fraudChart.data.datasets[1].data = allData.safeData.slice(-monthsToShow);
+                
+                // Adjust y-axis max based on data
+                const maxFraud = Math.max(...allData.fraudData.slice(-monthsToShow));
+                fraudChart.options.scales.y.max = Math.max(160000, maxFraud * 1.1);
+                
+                fraudChart.update();
+            });
+        });
+    </script>
+</body>
+</html>-->
+
+
+
+<!--<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Fraud Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --success-color: #2ecc71;
+            --danger-color: #e63946;
+            --text-primary: #2b2d42;
+            --text-secondary: #8d99ae;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f9;
+            --border-radius-sm: 8px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 20px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.25s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 2rem;
+        }
+        
+        h1 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-align: center;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 5px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 450px;
+            margin: 2rem 0;
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            background-color: var(--bg-tertiary);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .filters {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .filter-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: none;
+            border-radius: var(--border-radius-lg);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.03em;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius-sm);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .fraud-color {
+            background-color: var(--danger-color);
+            box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+        }
+        
+        .safe-color {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .dashboard {
+                padding: 1.5rem;
+            }
+            
+            .chart-container {
+                height: 350px;
+            }
+            
+            .filter-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>Monthly Fraud Amounts</h1>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-period="6">6 Months</button>
+            <button class="filter-btn" data-period="12">12 Months</button>
+            <button class="filter-btn" data-period="all">All Time</button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="fraudChart"></canvas>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color fraud-color"></div>
+                <span>Fraud Amount</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color safe-color"></div>
+                <span>Safe Threshold</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in a real app this would come from an API
+        const allData = {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            fraudData: [120000, 95000, 140000, 110000, 80000, 60000, 45000, 70000, 90000, 130000, 150000, 110000],
+            safeData: [5000, 50000, 1000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000]
+        };
+
+        // Initialize chart
+        const ctx = document.getElementById('fraudChart').getContext('2d');
+        let fraudChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: allData.labels.slice(-6), // Default to last 6 months
+                datasets: [
+                    {
+                        label: 'Fraud Amount',
+                        data: allData.fraudData.slice(-6),
+                        borderColor: '#e63946',
+                        backgroundColor: 'rgba(230, 57, 70, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#e63946',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Safe Threshold',
+                        data: allData.safeData.slice(-6),
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.05)',
+                        borderWidth: 2,
+                        borderDash: [6, 6],
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#2b2d42',
+                        bodyColor: '#2b2d42',
+                        borderColor: '#dddddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 8,
+                        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            color: '#8d99ae'
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#8d99ae'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Amount (USD)',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            color: '#8d99ae'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            },
+                            color: '#8d99ae'
+                        },
+                        grid: {
+                            color: 'rgba(141, 153, 174, 0.1)',
+                            drawBorder: false
+                        },
+                        min: 0,
+                        max: 160000
+                    }
+                },
+                elements: {
+                    line: {
+                        borderWidth: 3
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                animations: {
+                    tension: {
+                        duration: 1000,
+                        easing: 'linear'
+                    }
+                }
+            }
+        });
+
+        // Filter functionality
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const period = this.dataset.period;
+                let monthsToShow = 12;
+                
+                if (period === '6') monthsToShow = 6;
+                if (period === 'all') monthsToShow = 12; // All 12 months in our data
+                
+                // Update chart data
+                fraudChart.data.labels = allData.labels.slice(-monthsToShow);
+                fraudChart.data.datasets[0].data = allData.fraudData.slice(-monthsToShow);
+                fraudChart.data.datasets[1].data = allData.safeData.slice(-monthsToShow);
+                
+                // Adjust y-axis max based on data
+                const maxFraud = Math.max(...allData.fraudData.slice(-monthsToShow));
+                fraudChart.options.scales.y.max = Math.max(160000, maxFraud * 1.1);
+                
+                fraudChart.update();
+            });
+        });
+    </script>
+</body>
+</html>-->
