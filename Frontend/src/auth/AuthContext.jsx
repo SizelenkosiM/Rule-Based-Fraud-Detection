@@ -4,6 +4,8 @@ import { createContext, useState, useContext, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 const AuthContext = createContext()
+const API_BASE_URL = process.env.REACT_APP_API_URL;
+
 
 export const useAuth = () => useContext(AuthContext)
 
@@ -21,52 +23,51 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (username, password) => {
-    try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      })
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password }),
+    });
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Login failed")
-      }
-
-      const data = await response.json()
-      localStorage.setItem("fraud_detection_user", JSON.stringify(data.user))
-      localStorage.setItem("fraud_detection_token", data.token)
-      setCurrentUser(data.user)
-      return true
-    } catch (error) {
-      console.error("Login error:", error)
-      throw error
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Login failed");
     }
-  }
+
+    const data = await response.json();
+    localStorage.setItem("fraud_detection_user", JSON.stringify(data.user));
+    localStorage.setItem("fraud_detection_token", data.token);
+    setCurrentUser(data.user);
+    return true;
+  } catch (error) {
+    console.error("Login error:", error);
+    throw error;}
+  };
 
   const register = async (username, password, name) => {
-    try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password, name }),
-      })
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password, name }),
+    });
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Registration failed")
-      }
-
-      return true
-    } catch (error) {
-      console.error("Registration error:", error)
-      throw error
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Registration failed");
     }
-  }
+
+    return true;
+  } catch (error) {
+    console.error("Registration error:", error);
+    throw error;}
+  };
+
 
   const logout = () => {
     localStorage.removeItem("fraud_detection_user")
