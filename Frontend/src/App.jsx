@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, Link, useLocation } f
 import { useState } from "react"
 import { BarChart2, CreditCard, AlertTriangle, Users, FileBarChart, Menu, X, ChevronRight, LogOut } from "lucide-react"
 import "./App.css"
-import "./auth/auth.css"
+import "./auth/Auth.css"
 
 // Components
 import Dashboard from "./components/Dashboard"
