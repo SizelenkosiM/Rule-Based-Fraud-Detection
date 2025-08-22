@@ -51,8 +51,10 @@ function ReportsAnalytics() {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const trans = await fetch("http://localhost:5000/api/transactions").then((res) => res.json())
-        const alertsData = await fetch("http://localhost:5000/api/alerts").then((res) => res.json())
+        const apiUrl = process.env.REACT_APP_API_URL;
+
+        const trans = await fetch(`${apiUrl}/api/transactions`).then((res) => res.json())
+        const alertsData = await fetch(`${apiUrl}/api/alerts`).then((res) => res.json())
 
         const filteredData = filterDataByTimeRange(trans, alertsData, timeRange)
 
@@ -502,10 +504,10 @@ function ReportsAnalytics() {
 
   const refreshReport = () => {
     setIsLoading(true)
-    fetch("http://localhost:5000/api/transactions")
+    fetch(`${apiUrl}/api/transactions`)
       .then((res) => res.json())
       .then((trans) => {
-        fetch("http://localhost:5000/api/alerts")
+        fetch(`${apiUrl}/api/alerts`)
           .then((res) => res.json())
           .then((alertsData) => {
             const filteredData = filterDataByTimeRange(trans, alertsData, timeRange)

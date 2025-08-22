@@ -438,7 +438,7 @@
           name: "Anesu Makombe",
           password: "anesu123",
           balance: 2500.0,
-          lastActivity: new Date().getTime() - 100 * 24 * 60 * 60 * 1000, // 100 days ago
+          lastActivity: new Date().getTime() - 100 * 24 * 60 * 60 * 1000,
           monthlyTransactions: 200.0,
         },
         user124: {
@@ -524,7 +524,7 @@
           );
         });
 
-      const API_BASE_URL = "http://localhost:5000/api";
+      const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
 
       function formatCurrency(amount) {
         return new Intl.NumberFormat("en-US", {
@@ -664,7 +664,6 @@
             fraudFlags
           );
 
-          // Update UI based on response
           if (response.success) {
             if (response.isFraudulent) {
               // Show fraud alert
@@ -794,4 +793,3 @@
     </script>
   </body>
 </html>
-`

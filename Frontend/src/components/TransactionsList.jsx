@@ -5,9 +5,10 @@ import { useState, useEffect } from "react"
 function TransactionsList() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/transactions")
+    fetch(`${apiUrl}/api/transactions`)
       .then((response) => response.json())
       .then((data) => {
         setTransactions(data)

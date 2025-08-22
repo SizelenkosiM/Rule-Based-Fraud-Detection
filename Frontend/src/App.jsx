@@ -93,7 +93,6 @@ function AppSidebar({ isSidebarOpen, toggleSidebar }) {
   )
 }
 
-// Update the AppContent function to properly handle sidebar state
 function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const location = useLocation()
@@ -120,7 +119,6 @@ function AppContent() {
     }
   }
 
-  // If not authenticated, don't render the main app layout
   if (!isAuthenticated) {
     return (
       <Routes>

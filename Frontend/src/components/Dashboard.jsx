@@ -41,10 +41,13 @@ function Dashboard() {
           "Authorization": `Bearer ${token}`
         };
 
+        const apiUrl = process.env.REACT_APP_API_URL;
+
         const [transactionsResponse, alertsResponse] = await Promise.all([
-          fetch("http://localhost:5000/api/transactions", { headers }),
-          fetch("http://localhost:5000/api/alerts", { headers })
+          fetch(`${apiUrl}/api/transactions`, { headers }),
+          fetch(`${apiUrl}/api/alerts`, { headers })
         ]);
+
 
         if (!transactionsResponse.ok) {
           throw new Error(`Error fetching transactions: ${transactionsResponse.status}`);

@@ -51,7 +51,9 @@ function UserBehaviorAnalysis() {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - Number.parseInt(timeRange))
 
-    fetch(`http://localhost:5000/api/transactions?user_id=${selectedUser}`)
+    const apiUrl = process.env.REACT_APP_API_URL;
+
+    fetch(`${apiUrl}/api/transactions?user_id=${selectedUser}`)
       .then((response) => response.json())
       .then((data) => {
         const filteredData = data.filter((transaction) => {

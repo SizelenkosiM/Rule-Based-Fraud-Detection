@@ -11,7 +11,8 @@ function AlertsList() {
   }, [])
 
   const fetchAlerts = () => {
-    fetch("http://localhost:5000/api/alerts")
+    const apiUrl = process.env.REACT_APP_API_URL;
+    fetch(`${apiUrl}/api/alerts`)
       .then((response) => response.json())
       .then((data) => {
         setAlerts(data)
@@ -40,11 +41,11 @@ function AlertsList() {
         return ruleName
     }
   }
-  
+
 
   return (
     <div className="alerts-list">
-      
+
       {loading ? (
         <p>Loading alerts...</p>
       ) : alerts.length === 0 ? (
@@ -60,7 +61,7 @@ function AlertsList() {
                 <th>Rule Triggered</th>
                 <th>Amount</th>
                 <th>Description</th>
-                
+
               </tr>
             </thead>
             <tbody>
@@ -72,7 +73,7 @@ function AlertsList() {
                   <td>{formatRuleName(alert.rule_triggered)}</td>
                   <td>${Number.parseFloat(alert.amount).toFixed(2)}</td>
                   <td>{alert.description}</td>
-                
+
                 </tr>
               ))}
             </tbody>
